@@ -40,7 +40,6 @@ int main(int argc, char **argv){
   cudaError_t cudaStat;
   cublasStatus_t stat;
   cublasHandle_t handle;
-  int i, j;
   double* devPtrA;
   double* devPtrB;
     if (!A) {
