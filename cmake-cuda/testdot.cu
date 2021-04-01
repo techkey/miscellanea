@@ -84,7 +84,7 @@ for (int i=1; i<=nSamples; ++i) {
 
     const auto start = std::chrono::high_resolution_clock::now();
 #ifdef WITH_BLAS
-    z=cblas_ddot(n,devPtrA,1,devPtrB,1);
+    z=cblas_ddot(n,A,1,B,1);
 #else    
     stat = cublasDdot(handle, n, devPtrA, 1, devPtrB, 1, &z);
     if (stat != CUBLAS_STATUS_SUCCESS) {
@@ -120,6 +120,7 @@ for (int i=1; i<=nSamples; ++i) {
   std::cout<<n<<" "<<timeAvg<<" "<<tmin<<" "<<tmax<<" "<<sig<<std::endl;
 
   cudaFree (devPtrA);
+  cudaFree (devPtrB);
   cublasDestroy(handle);
   delete[] times;
   delete[] A;
