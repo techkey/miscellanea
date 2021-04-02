@@ -14,6 +14,6 @@ else()
   find_package(CUDAToolkit REQUIRED)
   set (dottest_link_libraries CUDA::cublas) 
 endif()
-
+add_definitions(-DCUDABLAS)
 message(STATUS "Link with ${dottest_link_libraries}")
 target_link_libraries(dottest ${dottest_link_libraries})
