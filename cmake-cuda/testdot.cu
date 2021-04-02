@@ -11,6 +11,9 @@
 #include <cuda_runtime.h>
 #include "cublas_v2.h"
 #endif
+
+int print_stats(int n, int nSamples, double *times, double *pi, double *diff, double tmin, double tmax);
+
 int main(int argc, char **argv){
 
   if (argc != 3) {
@@ -25,8 +28,12 @@ int main(int argc, char **argv){
   std::cout<<"Using "<<omp_get_num_threads() <<" threads out of a maximum of"<<omp_get_max_threads()<<std::endl;
 #endif 
 
+/*********************************************************/
+// read input
+/*********************************************************/
   int n=atoi(argv[1]);
   int nSamples=atoi(argv[2]);
+
   std::cout<<"Running... ";
   for(int i=0; i<argc; ++i) {
     std::cout<<argv[i]<<" ";
@@ -43,19 +50,25 @@ int main(int argc, char **argv){
   double tmin=std::numeric_limits<double>::max();
   double tmax=0.0;
   double z;
+#ifdef CUDABLAS
   cudaError_t cudaStat;
   cublasStatus_t stat;
   cublasHandle_t handle;
+#endif
   double* devPtrA;
   double* devPtrB;
   
-  // set arrays values
+  /*********************************************************/
+  //                  set arrays values
+  /*********************************************************/
   int sign = 1;
   for (int j=0; j<N; ++j) {
     A[j] = 4./(double)(2*j+1);
     B[j] = (double)(sign);
     sign *= -1;
   }
+  /*********************************************************/
+  
 #ifdef CUDABLAS
   cudaStat = cudaMalloc ((void**)&devPtrA, (N)*sizeof(*A));
   if (cudaStat != cudaSuccess) {
@@ -73,6 +86,8 @@ int main(int argc, char **argv){
       return EXIT_FAILURE;
   }
 #endif
+
+
   for (int i=0; i<nSamples; ++i) {
 
 #ifdef CUDABLAS
@@ -90,6 +105,10 @@ int main(int argc, char **argv){
     }
 #endif
 
+/*********************************************************/
+//  calculate dot product 
+/*********************************************************/
+  
     const auto start = std::chrono::high_resolution_clock::now();
 #ifdef WITH_BLAS
     z=cblas_ddot(n+i,A,1,B,1);
@@ -102,15 +121,34 @@ int main(int argc, char **argv){
     }
 #endif
 //    z=dot(A,B,n);
-#endif    
-    pi[i] = z;
-    diff[i] = M_PI - z;
+#endif
+/*********************************************************/
+  
     times[i] = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start).count();
     if (tmin>times[i]) tmin=times[i];
     if (tmax<times[i]) tmax=times[i];
 
+    pi[i] = z;
+    diff[i] = M_PI - z;
+    
   }
   
+  print_stats(n, nSamples, times, pi, diff, tmin, tmax);
+  
+#ifdef CUDABLAS
+  cudaFree (devPtrA);
+  cudaFree (devPtrB);
+  cublasDestroy(handle);
+#endif
+
+  delete[] times;
+  delete[] A;
+  delete[] B;
+  
+  return 0;
+}
+
+int print_stats(int n, int nSamples, double *times, double *pi, double *diff, double tmin, double tmax){
   double timeAvg = 0.0;
   for(int i=0; i<nSamples; ++i) {
     timeAvg+=times[i];
@@ -128,21 +166,10 @@ int main(int argc, char **argv){
     // std::cout<<i+1<<" "<<n<<" "<<times[i]<<std::endl;
     std::cout<<i<<" "<<pi[i]<<" |z - pi| = "<< fabs(diff[i]) <<" < "<< (4./(double)(2*(i+n)+3)) << " " << times[i]<<"s "<<std::endl;
   }
-  std::cout<<"Last inner product: "<<z<<std::endl;
+  std::cout<<"Last inner product: "<<pi[n+nSamples-1]<<std::endl;
   std::cout<<"Summary:"<<std::endl;
   std::cout<<"#Size  n    |  Avg. Time (s) |   Min. Time(s) |   Max. Time(s) | σ Time(s)"<<std::endl;
-  std::cout<<n<<" "<<timeAvg<<" "<<tmin<<" "<<tmax<<" "<<sig<<std::endl;
-  
-#ifdef CUDABLAS
-  cudaFree (devPtrA);
-  cudaFree (devPtrB);
-  cublasDestroy(handle);
-#endif
-
-  delete[] times;
-  delete[] A;
-  delete[] B;
-  std::cout<<"Last inner product: "<<z<<std::endl;
+  std::cout<< n <<" "<< timeAvg <<" "<< tmin <<" "<< tmax <<" "<< sig << std::endl;
   return 0;
-  }
 
+}
