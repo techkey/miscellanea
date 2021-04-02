@@ -166,7 +166,7 @@ int print_stats(int n, int nSamples, double *times, double *pi, double *diff, do
     // std::cout<<i+1<<" "<<n<<" "<<times[i]<<std::endl;
     std::cout<<i<<" "<<pi[i]<<" |z - pi| = "<< fabs(diff[i]) <<" < "<< (4./(double)(2*(i+n)+3)) << " " << times[i]<<"s "<<std::endl;
   }
-  std::cout<<"Last inner product: "<<pi[n+nSamples-1]<<std::endl;
+  std::cout<<"Last inner product: "<<pi[nSamples-1]<<std::endl;
   std::cout<<"Summary:"<<std::endl;
   std::cout<<"#Size  n    |  Avg. Time (s) |   Min. Time(s) |   Max. Time(s) | σ Time(s)"<<std::endl;
   std::cout<< n <<" "<< timeAvg <<" "<< tmin <<" "<< tmax <<" "<< sig << std::endl;
